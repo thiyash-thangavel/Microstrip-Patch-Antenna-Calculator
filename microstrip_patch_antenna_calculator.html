@@ -1,0 +1,2329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microstrip Patch Antenna Design Calculator</title>
+<style>
+/* ============================================================
+   ROOT VARIABLES & RESET
+   ============================================================ */
+:root {
+  --bg-primary:    #070d14;
+  --bg-secondary:  #0d1825;
+  --bg-panel:      #101e2e;
+  --bg-card:       #0a1520;
+  --bg-input:      #071018;
+  --border:        #1a3050;
+  --border-glow:   #0f6ebd;
+  --accent:        #00c2ff;
+  --accent2:       #00ff88;
+  --accent3:       #f7c948;
+  --accent-red:    #ff4d6d;
+  --text-primary:  #e8f4ff;
+  --text-secondary:#7ab3d8;
+  --text-muted:    #3a6080;
+  --text-label:    #4ea8de;
+  --grid-line:     #0a1e30;
+  --glow:          0 0 18px rgba(0,194,255,0.18);
+  --glow-strong:   0 0 32px rgba(0,194,255,0.30);
+  --font-mono:     'Courier New', 'Lucida Console', monospace;
+  --font-head:     Georgia, 'Times New Roman', serif;
+  --font-body:     'Trebuchet MS', 'Segoe UI', sans-serif;
+  --radius:        6px;
+  --radius-lg:     10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-primary);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,100,200,0.08) 0%, transparent 70%),
+    linear-gradient(180deg, #070d14 0%, #040a12 100%);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Grid texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+}
+
+body > * { position: relative; z-index: 1; }
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+header {
+  background: linear-gradient(135deg, #071626 0%, #0d1e32 50%, #071626 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 30px rgba(0,0,0,0.6), 0 1px 0 rgba(0,194,255,0.1);
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.header-title-block h1 {
+  font-family: var(--font-head);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 20px rgba(0,194,255,0.4);
+  line-height: 1.2;
+}
+
+.header-title-block p {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.header-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.badge {
+  background: rgba(0,194,255,0.08);
+  border: 1px solid rgba(0,194,255,0.25);
+  color: var(--accent);
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+}
+
+.badge.green { background: rgba(0,255,136,0.07); border-color: rgba(0,255,136,0.25); color: var(--accent2); }
+.badge.amber { background: rgba(247,201,72,0.07); border-color: rgba(247,201,72,0.25); color: var(--accent3); }
+
+/* ============================================================
+   NAV TABS
+   ============================================================ */
+.nav-tabs {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.nav-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  position: relative;
+}
+
+.nav-tab:hover { color: var(--text-primary); }
+.nav-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(0,194,255,0.4);
+}
+
+/* ============================================================
+   MAIN LAYOUT
+   ============================================================ */
+.main-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px 24px 60px;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Two-column design+results layout */
+.layout-two-col {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .layout-two-col { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   PANELS & CARDS
+   ============================================================ */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-label);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* ============================================================
+   FORM CONTROLS
+   ============================================================ */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-label);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  font-family: var(--font-mono);
+}
+
+.form-label sub {
+  font-size: 0.9em;
+  letter-spacing: 0;
+}
+
+.form-control {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 8px 11px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  appearance: none;
+}
+
+.form-control:focus {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 0 2px rgba(0,194,255,0.12), var(--glow);
+}
+
+.form-control option {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.input-with-unit .form-control {
+  border-radius: var(--radius) 0 0 var(--radius);
+  flex: 1;
+}
+
+.unit-badge {
+  background: rgba(0,194,255,0.1);
+  border: 1px solid var(--border);
+  border-left: none;
+  color: var(--text-label);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  white-space: nowrap;
+  min-width: 48px;
+  text-align: center;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+/* ============================================================
+   RESULT CARDS GRID
+   ============================================================ */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.result-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: 0.5;
+}
+
+.result-card:hover {
+  border-color: rgba(0,194,255,0.3);
+  box-shadow: var(--glow);
+}
+
+.result-card.highlight::after { background: linear-gradient(90deg, var(--accent2), transparent); }
+.result-card.highlight { border-color: rgba(0,255,136,0.2); }
+.result-card.amber::after { background: linear-gradient(90deg, var(--accent3), transparent); }
+.result-card.amber { border-color: rgba(247,201,72,0.2); }
+
+.result-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.result-value {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.result-card.highlight .result-value { color: var(--accent2); }
+.result-card.amber .result-value { color: var(--accent3); }
+
+.result-unit {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   VISUALIZATION AREA
+   ============================================================ */
+.viz-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.viz-tab {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.viz-tab.active {
+  background: rgba(0,194,255,0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.viz-container {
+  background: #030c16;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-height: 460px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viz-container svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================================
+   FORMULA SECTION
+   ============================================================ */
+.formula-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.formula-title {
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.formula-eq {
+  color: var(--accent2);
+  font-size: 0.95rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.formula-note {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  margin-top: 6px;
+}
+
+/* ============================================================
+   PARAMETER TABLE
+   ============================================================ */
+.param-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.param-table th {
+  background: rgba(0,194,255,0.08);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.param-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(26,48,80,0.6);
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.param-table tr:hover td { background: rgba(0,194,255,0.03); }
+
+.param-table td:first-child {
+  font-family: var(--font-mono);
+  color: var(--accent2);
+  font-weight: bold;
+  white-space: nowrap;
+  width: 110px;
+}
+
+.param-table td:nth-child(2) {
+  color: var(--text-secondary);
+  width: 200px;
+}
+
+.param-table td:nth-child(3) {
+  color: var(--text-primary);
+  font-size: 0.78rem;
+}
+
+/* ============================================================
+   HFSS / CST SECTION
+   ============================================================ */
+.sim-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.sim-card-title {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--accent3);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-card-title::before {
+  content: '▶';
+  color: var(--accent3);
+  font-size: 0.6rem;
+}
+
+.sim-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sim-list li {
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  padding-left: 16px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.sim-list li::before {
+  content: '→';
+  color: var(--accent);
+  position: absolute;
+  left: 0;
+  font-family: var(--font-mono);
+}
+
+.sim-list li code {
+  background: rgba(0,194,255,0.1);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  background: rgba(0,194,255,0.1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 9px 20px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.btn:hover {
+  background: rgba(0,194,255,0.2);
+  box-shadow: var(--glow-strong);
+}
+
+.btn-primary {
+  background: rgba(0,194,255,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-success {
+  background: rgba(0,255,136,0.1);
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+
+.btn-success:hover {
+  background: rgba(0,255,136,0.18);
+  box-shadow: 0 0 20px rgba(0,255,136,0.25);
+}
+
+.btn-amber {
+  background: rgba(247,201,72,0.1);
+  border-color: var(--accent3);
+  color: var(--accent3);
+}
+
+.btn-amber:hover {
+  background: rgba(247,201,72,0.18);
+  box-shadow: 0 0 20px rgba(247,201,72,0.25);
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* ============================================================
+   STATUS BAR
+   ============================================================ */
+.status-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  background: var(--accent2);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent2);
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-text { color: var(--text-secondary); }
+.status-freq { color: var(--accent); font-weight: bold; }
+
+/* ============================================================
+   WAVELENGTH DISPLAY
+   ============================================================ */
+.lambda-strip {
+  background: rgba(247,201,72,0.06);
+  border: 1px solid rgba(247,201,72,0.2);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.lambda-item { font-family: var(--font-mono); font-size: 0.78rem; }
+.lambda-key { color: var(--accent3); }
+.lambda-val { color: var(--text-primary); margin-left: 6px; }
+
+/* ============================================================
+   PRINT STYLES
+   ============================================================ */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  body::before { display: none; }
+  header, .nav-tabs, .btn-row, .viz-tabs { display: none !important; }
+  .panel, .result-card, .formula-block, .sim-card {
+    background: white !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  .main-container { padding: 0; }
+  .tab-panel { display: block !important; }
+  .layout-two-col { grid-template-columns: 1fr 1fr; }
+  .result-value { color: #005fa3 !important; }
+  .result-card::after { display: none; }
+  .param-table th { background: #eef4ff !important; color: #003060 !important; }
+  .formula-eq { color: #006640 !important; }
+  .formula-title { color: #0050a0 !important; }
+  .sim-card-title { color: #7a4a00 !important; }
+  .viz-container { border: 1px solid #ccc !important; background: white !important; }
+  #print-report { display: block !important; }
+}
+
+/* Print report overlay */
+#print-report {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: white;
+  z-index: 9999;
+  padding: 30px 40px;
+  overflow-y: auto;
+  color: black;
+  font-family: Georgia, serif;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #003060;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.report-title { font-size: 1.4rem; color: #003060; font-weight: bold; }
+.report-subtitle { font-size: 0.85rem; color: #555; }
+.report-meta { text-align: right; font-size: 0.75rem; color: #666; }
+
+.report-section-title {
+  background: #003060;
+  color: white;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 18px 0 10px;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 12px;
+}
+
+.report-table th {
+  background: #e8f0f8;
+  color: #003060;
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid #b0c4de;
+}
+
+.report-table td {
+  border: 1px solid #d0d8e4;
+  padding: 5px 10px;
+}
+
+.report-table td:first-child { font-weight: bold; color: #005fa3; font-family: monospace; }
+.report-footer { border-top: 1px solid #ccc; margin-top: 20px; padding-top: 10px; font-size: 0.72rem; color: #888; text-align: center; }
+
+/* ============================================================
+   MISC UTILITY
+   ============================================================ */
+.mt8  { margin-top: 8px; }
+.mt16 { margin-top: 16px; }
+.mb8  { margin-bottom: 8px; }
+.text-muted { color: var(--text-muted); font-size: 0.72rem; }
+.text-accent { color: var(--accent); }
+
+.hidden { display: none !important; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
+</style>
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+     ═══════════════════════════════════════════════════════════ -->
+<header>
+  <div class="header-logo">
+    <svg class="logo-icon" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="44" height="44" rx="6" fill="rgba(0,194,255,0.08)" stroke="rgba(0,194,255,0.3)" stroke-width="1"/>
+      <!-- patch outline -->
+      <rect x="8" y="10" width="28" height="18" rx="1" fill="none" stroke="#00c2ff" stroke-width="1.2"/>
+      <!-- feed line -->
+      <line x1="22" y1="28" x2="22" y2="38" stroke="#00c2ff" stroke-width="1.5"/>
+      <!-- inset notches -->
+      <rect x="18" y="25" width="3" height="4" fill="none" stroke="#00ff88" stroke-width="0.8"/>
+      <rect x="23" y="25" width="3" height="4" fill="none" stroke="#00ff88" stroke-width="0.8"/>
+      <!-- ground line -->
+      <line x1="4" y1="38" x2="40" y2="38" stroke="#f7c948" stroke-width="1.2"/>
+      <line x1="4" y1="40" x2="40" y2="40" stroke="#f7c948" stroke-width="0.6" stroke-dasharray="2 2"/>
+    </svg>
+    <div class="header-title-block">
+      <h1>Microstrip Patch Antenna Design Calculator</h1>
+      <p>Rectangular Inset-Fed · HFSS / CST Compatible · v2.0</p>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="badge">IEEE Std</span>
+    <span class="badge green">Real-Time Calc</span>
+    <span class="badge amber">Print Report</span>
+    <span class="badge">SVG Diagrams</span>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NAVIGATION TABS
+     ═══════════════════════════════════════════════════════════ -->
+<nav class="nav-tabs">
+  <button class="nav-tab active" onclick="showTab('tab-design')">① Design &amp; Calculate</button>
+  <button class="nav-tab" onclick="showTab('tab-diagrams')">② Engineering Diagrams</button>
+  <button class="nav-tab" onclick="showTab('tab-formulas')">③ Formula Reference</button>
+  <button class="nav-tab" onclick="showTab('tab-params')">④ Parameter Guide</button>
+  <button class="nav-tab" onclick="showTab('tab-hfss')">⑤ HFSS / CST Setup</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN CONTAINER
+     ═══════════════════════════════════════════════════════════ -->
+<div class="main-container">
+
+  <!-- ─── TAB 1: DESIGN & CALCULATE ─── -->
+  <div class="tab-panel active" id="tab-design">
+
+    <div id="status-bar" class="status-bar">
+      <div class="status-dot"></div>
+      <span class="status-text">Operating Frequency:</span>
+      <span class="status-freq" id="sb-freq">—</span>
+      <span class="status-text">|</span>
+      <span class="status-text">Substrate:</span>
+      <span class="status-freq" id="sb-sub">—</span>
+      <span class="status-text">|</span>
+      <span class="status-text">εr =</span>
+      <span class="status-freq" id="sb-er">—</span>
+      <span class="status-text">| λ₀ =</span>
+      <span class="status-freq" id="sb-lambda">—</span>
+    </div>
+
+    <div class="layout-two-col">
+
+      <!-- ── LEFT: INPUT PANEL ── -->
+      <div>
+        <div class="panel">
+          <div class="panel-title">Input Parameters</div>
+
+          <!-- 1. FREQUENCY -->
+          <div class="form-group">
+            <label class="form-label">Operating Frequency f</label>
+            <div class="input-with-unit">
+              <input class="form-control" type="number" id="freq" value="2.4" min="0.1" max="100" step="0.1" oninput="recalculate()">
+              <span class="unit-badge">GHz</span>
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- 2. SUBSTRATE -->
+          <div class="form-group">
+            <label class="form-label">Substrate Material</label>
+            <select class="form-control" id="substrate" onchange="onSubstrateChange()">
+              <option value="fr4">FR4 (εr = 4.4, h = 1.6 mm)</option>
+              <option value="rogers">Rogers RT/duroid 5880 (εr = 2.2, h = 1.575 mm)</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div id="custom-substrate" class="hidden">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Dielectric Const. ε<sub>r</sub></label>
+                <input class="form-control" type="number" id="er-custom" value="4.4" min="1" max="100" step="0.01" oninput="recalculate()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Thickness h (mm)</label>
+                <input class="form-control" type="number" id="h-custom" value="1.6" min="0.01" max="10" step="0.01" oninput="recalculate()">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Loss Tangent tan δ</label>
+              <input class="form-control" type="number" id="tand-custom" value="0.02" min="0" max="1" step="0.001" oninput="recalculate()">
+            </div>
+          </div>
+
+          <!-- Read-only substrate display -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">ε<sub>r</sub> (active)</label>
+              <input class="form-control" type="text" id="er-display" readonly style="opacity:0.7">
+            </div>
+            <div class="form-group">
+              <label class="form-label">h (active, mm)</label>
+              <input class="form-control" type="text" id="h-display" readonly style="opacity:0.7">
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- 3. CONDUCTOR MATERIAL -->
+          <div class="form-group">
+            <label class="form-label">Conductor Material</label>
+            <select class="form-control" id="conductor" onchange="recalculate()">
+              <option value="copper">Copper (σ = 5.8×10⁷ S/m)</option>
+              <option value="silver">Silver (σ = 6.2×10⁷ S/m)</option>
+              <option value="gold">Gold (σ = 4.1×10⁷ S/m)</option>
+              <option value="aluminum">Aluminum (σ = 3.5×10⁷ S/m)</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div id="custom-conductor" class="hidden form-group">
+            <label class="form-label">Conductivity σ (S/m)</label>
+            <div class="input-with-unit">
+              <input class="form-control" type="number" id="sigma-custom" value="5.8e7" step="1e6" oninput="recalculate()">
+              <span class="unit-badge">S/m</span>
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- 4. COPPER THICKNESS -->
+          <div class="form-group">
+            <label class="form-label">Conductor Thickness t</label>
+            <div class="input-with-unit">
+              <input class="form-control" type="number" id="t-val" value="0.035" min="0.001" max="1" step="0.001" oninput="recalculate()">
+              <span class="unit-badge">mm</span>
+            </div>
+            <div class="text-muted mt8">Default: 0.035 mm (1 oz copper)</div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- ACTION BUTTONS -->
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="recalculate()">⟳ Recalculate</button>
+            <button class="btn btn-success" onclick="generateReport()">🖨 Print Report</button>
+            <button class="btn" onclick="resetDefaults()">↺ Reset</button>
+          </div>
+        </div>
+
+        <!-- Wavelength strip -->
+        <div class="lambda-strip mt16">
+          <div class="lambda-item"><span class="lambda-key">λ₀</span><span class="lambda-val" id="lam0-val">—</span></div>
+          <div class="lambda-item"><span class="lambda-key">λ_g</span><span class="lambda-val" id="lamg-val">—</span></div>
+          <div class="lambda-item"><span class="lambda-key">λ/4</span><span class="lambda-val" id="lamq-val">—</span></div>
+          <div class="lambda-item"><span class="lambda-key">λ/20</span><span class="lambda-val" id="lam20-val">—</span></div>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: RESULTS PANEL ── -->
+      <div>
+        <div class="panel">
+          <div class="panel-title">Calculated Results</div>
+
+          <!-- Patch Dimensions -->
+          <div class="panel-title" style="font-size:0.65rem; margin-bottom:8px; border-bottom:none; padding-bottom:0;">
+            Patch Geometry
+          </div>
+          <div class="results-grid" id="results-patch">
+            <div class="result-card highlight">
+              <div class="result-label">Patch Width W</div>
+              <div class="result-value" id="res-W">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card highlight">
+              <div class="result-label">Patch Length L</div>
+              <div class="result-value" id="res-L">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Eff. Diel. ε<sub>reff</sub></div>
+              <div class="result-value" id="res-ereff">—</div>
+              <div class="result-unit">dimensionless</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">ΔL Extension</div>
+              <div class="result-value" id="res-dL">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+          </div>
+
+          <!-- Ground Dimensions -->
+          <div class="panel-title" style="font-size:0.65rem; margin:12px 0 8px; border-bottom:none; padding-bottom:0;">
+            Ground Plane
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="result-label">Ground Width Wg</div>
+              <div class="result-value" id="res-Wg">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Ground Length Lg</div>
+              <div class="result-value" id="res-Lg">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+          </div>
+
+          <!-- Feed Dimensions -->
+          <div class="panel-title" style="font-size:0.65rem; margin:12px 0 8px; border-bottom:none; padding-bottom:0;">
+            Feed Line &amp; Inset
+          </div>
+          <div class="results-grid">
+            <div class="result-card amber">
+              <div class="result-label">Feed Width Wf</div>
+              <div class="result-value" id="res-Wf">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card amber">
+              <div class="result-label">Feed Length Lf</div>
+              <div class="result-value" id="res-Lf">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card amber">
+              <div class="result-label">Inset Position y₀</div>
+              <div class="result-value" id="res-y0">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card amber">
+              <div class="result-label">Feed Gap g</div>
+              <div class="result-value" id="res-g">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+          </div>
+
+          <!-- Substrate & Conductor -->
+          <div class="panel-title" style="font-size:0.65rem; margin:12px 0 8px; border-bottom:none; padding-bottom:0;">
+            Material Stack
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="result-label">Substrate h</div>
+              <div class="result-value" id="res-h">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Conductor t</div>
+              <div class="result-value" id="res-t">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Skin Depth δ_s</div>
+              <div class="result-value" id="res-skin">—</div>
+              <div class="result-unit">μm</div>
+            </div>
+          </div>
+
+          <!-- Sim Parameters -->
+          <div class="panel-title" style="font-size:0.65rem; margin:12px 0 8px; border-bottom:none; padding-bottom:0;">
+            Simulation Box &amp; Mesh
+          </div>
+          <div class="results-grid">
+            <div class="result-card">
+              <div class="result-label">WP Width</div>
+              <div class="result-value" id="res-wpw">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">WP Height</div>
+              <div class="result-value" id="res-wph">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Air Box W</div>
+              <div class="result-value" id="res-abw">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Air Box H</div>
+              <div class="result-value" id="res-abh">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Rad. Boundary</div>
+              <div class="result-value" id="res-rad">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Mesh Coarse</div>
+              <div class="result-value" id="res-mc">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card highlight">
+              <div class="result-label">Mesh Recommended</div>
+              <div class="result-value" id="res-mr">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">Mesh Fine</div>
+              <div class="result-value" id="res-mf">—</div>
+              <div class="result-unit">mm</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- end layout-two-col -->
+
+  </div><!-- end tab-design -->
+
+  <!-- ─── TAB 2: ENGINEERING DIAGRAMS ─── -->
+  <div class="tab-panel" id="tab-diagrams">
+    <div class="panel">
+      <div class="panel-title">Engineering Drawings — Auto-Updating</div>
+      <div class="viz-tabs">
+        <button class="viz-tab active" onclick="showViz('top')">Top View</button>
+        <button class="viz-tab" onclick="showViz('side')">Side View</button>
+        <button class="viz-tab" onclick="showViz('iso')">Isometric 3D</button>
+      </div>
+      <div class="viz-container" id="viz-area">
+        <!-- SVG injected here by JS -->
+      </div>
+      <div class="text-muted mt8" style="padding:4px 8px;">
+        All dimensions in mm · Drawings update automatically when parameters change · Not to scale
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TAB 3: FORMULA REFERENCE ─── -->
+  <div class="tab-panel" id="tab-formulas">
+    <div class="panel">
+      <div class="panel-title">Complete Formula Reference</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+
+        <div class="formula-block">
+          <div class="formula-title">1. Patch Width</div>
+          <div class="formula-eq">W = c / (2f) × √(2 / (εr + 1))</div>
+          <div class="formula-note">c = 3×10⁸ m/s (speed of light)<br>Determined by resonant cavity model</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">2. Effective Dielectric Constant</div>
+          <div class="formula-eq">εreff = (εr+1)/2 + (εr-1)/2
+         × [1 + 12h/W]^(-1/2)</div>
+          <div class="formula-note">Valid for W/h > 1<br>Accounts for fringing fields</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">3. Fringing Length Extension</div>
+          <div class="formula-eq">ΔL = 0.412h × (εreff+0.3)×(W/h+0.264)
+               / ((εreff-0.258)×(W/h+0.8))</div>
+          <div class="formula-note">Hammerstad formula<br>Models end fringing capacitance</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">4. Patch Length</div>
+          <div class="formula-eq">L = c / (2f√εreff) - 2ΔL</div>
+          <div class="formula-note">Half-wave resonant length<br>Corrected for fringing</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">5. Ground Plane Dimensions</div>
+          <div class="formula-eq">Wg = W + 6h
+Lg = L + 6h</div>
+          <div class="formula-note">6h clearance each side<br>Ensures negligible edge effects</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">6. 50Ω Microstrip Feed Width</div>
+          <div class="formula-eq">For W/h &lt; 2  (narrow strip):
+  Wf = 8h × exp(A) / (exp(2A)-2)
+  A = Z₀/60 × √((εr+1)/2) + (εr-1)/(εr+1)×(0.23+0.11/εr)
+
+For W/h ≥ 2  (wide strip):
+  Wf = 2h/π × [B-1-ln(2B-1)
+     + (εr-1)/(2εr) × (ln(B-1)+0.39-0.61/εr)]
+  B = 377π / (2×Z₀×√εr)</div>
+          <div class="formula-note">Bahl and Trivedi, 1977<br>Target impedance: Z₀ = 50 Ω</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">7. Inset Feed Position y₀</div>
+          <div class="formula-eq">Rin(y₀) = Rin(0) × cos²(π·y₀/L)
+Rin(0) ≈ 90 × εr² / (εr-1) × (L/W)²
+
+Solve for y₀:
+y₀ = L/π × arccos(√(Z₀/Rin(0)))</div>
+          <div class="formula-note">Z₀ = 50 Ω input impedance<br>Rin(0) = edge input resistance</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">8. Feed Gap (Slot Width)</div>
+          <div class="formula-eq">g = h/2  (typical rule of thumb)
+
+For precise design:
+  g = Wf × 0.5  (alternate)</div>
+          <div class="formula-note">Gap isolates feed from patch<br>Adjustable for matching</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">9. Feed Length</div>
+          <div class="formula-eq">Lf = (Lg - L) / 2</div>
+          <div class="formula-note">Extends to edge of ground plane<br>Provides waveguide port access</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">10. Waveguide Port Dimensions</div>
+          <div class="formula-eq">Port_Width  = 5 × Wf
+Port_Height = 5 × h</div>
+          <div class="formula-note">HFSS/CST Wave Port standard<br>Must capture dominant mode fields</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">11. Air Box &amp; Radiation Boundary</div>
+          <div class="formula-eq">Air_Box_W = Wg + 2×(λ₀/4)
+Air_Box_H = Lg + 2×(λ₀/4)
+Air_Box_Z = h + t + λ₀/4
+
+Rad_Boundary = λ₀/4 from antenna</div>
+          <div class="formula-note">λ₀ = free-space wavelength<br>λ₀/4 minimum separation</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">12. Mesh Cell Size</div>
+          <div class="formula-eq">λ_g = λ₀ / √εreff
+
+Coarse:      λ_g / 20
+Recommended: λ_g / 30
+Fine:        λ_g / 50</div>
+          <div class="formula-note">λ_g = guided wavelength in substrate<br>Finer mesh → more accuracy, more RAM</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">13. Skin Depth</div>
+          <div class="formula-eq">δ_s = 1 / √(π × f × μ₀ × σ)</div>
+          <div class="formula-note">μ₀ = 4π×10⁻⁷ H/m<br>σ = conductor conductivity (S/m)</div>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-title">14. Free-Space Wavelength</div>
+          <div class="formula-eq">λ₀ = c / f</div>
+          <div class="formula-note">c = 3×10⁸ m/s<br>f in Hz, λ₀ in metres</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TAB 4: PARAMETER GUIDE ─── -->
+  <div class="tab-panel" id="tab-params">
+    <div class="panel">
+      <div class="panel-title">Parameter Explanation Guide</div>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Meaning</th>
+            <th>Effect on Antenna Performance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>f</td>
+            <td>Operating frequency</td>
+            <td>Directly sets resonant dimensions. Higher f → smaller patch. Scales all dimensions inversely with frequency.</td>
+          </tr>
+          <tr>
+            <td>εr</td>
+            <td>Relative permittivity (dielectric constant)</td>
+            <td>Higher εr → smaller patch (miniaturisation) but reduced bandwidth and efficiency. Low εr (Rogers 5880) preferred for high-performance designs.</td>
+          </tr>
+          <tr>
+            <td>h</td>
+            <td>Substrate thickness</td>
+            <td>Thicker substrate → wider bandwidth, lower surface wave losses, but harder to suppress higher modes. Typical range: 0.01λ₀ – 0.05λ₀.</td>
+          </tr>
+          <tr>
+            <td>t</td>
+            <td>Conductor (metallisation) thickness</td>
+            <td>Affects feed width accuracy and skin-depth losses. Standard PCB copper is 35 μm (1 oz). Thicker metal reduces resistance but complicates photolithography.</td>
+          </tr>
+          <tr>
+            <td>W</td>
+            <td>Patch width</td>
+            <td>Primary dimension controlling radiation resistance and bandwidth. Wider W → lower radiation resistance, higher bandwidth. W ≈ 0.5 λ₀/√((εr+1)/2).</td>
+          </tr>
+          <tr>
+            <td>L</td>
+            <td>Patch length</td>
+            <td>Sets resonant frequency. Approximately half-wavelength in effective dielectric medium. Small errors in L shift resonance significantly.</td>
+          </tr>
+          <tr>
+            <td>Wg</td>
+            <td>Ground plane width</td>
+            <td>Must extend at least 3h beyond patch edges on each side (standard: 6h total). Finite ground planes modify E-plane patterns and can cause back radiation.</td>
+          </tr>
+          <tr>
+            <td>Lg</td>
+            <td>Ground plane length</td>
+            <td>Same rule as Wg. The feed line must also be accommodated. Shorter ground planes tilt the beam and reduce front-to-back ratio.</td>
+          </tr>
+          <tr>
+            <td>Wf</td>
+            <td>Feed line width (50 Ω)</td>
+            <td>Calculated for Z₀ = 50 Ω to match standard connectors/instruments. Narrower Wf → higher impedance; wider → lower. Must match system impedance for low VSWR.</td>
+          </tr>
+          <tr>
+            <td>Lf</td>
+            <td>Feed line length</td>
+            <td>Length from patch edge to waveguide port or SMA connector. Electrical length adds phase shift. For simulations, extends to ground plane boundary.</td>
+          </tr>
+          <tr>
+            <td>g</td>
+            <td>Inset feed gap (slot width)</td>
+            <td>Small gap between feed line and patch interior. Prevents direct DC contact while allowing RF coupling. Typically 0.5 mm – 1 mm. Affects capacitive loading.</td>
+          </tr>
+          <tr>
+            <td>y₀</td>
+            <td>Inset feed position (depth)</td>
+            <td>Distance the feed line penetrates into the patch. Controls input impedance matching. y₀ = 0 → edge feed (high impedance); y₀ = L/2 → centre (zero impedance). Optimise for 50 Ω.</td>
+          </tr>
+          <tr>
+            <td>Waveguide Port Width</td>
+            <td>Width of simulation excitation port</td>
+            <td>Set to 5×Wf to ensure all feed line fringing fields are captured. Too small → inaccurate S-parameters and port mismatch.</td>
+          </tr>
+          <tr>
+            <td>Waveguide Port Height</td>
+            <td>Height of simulation excitation port</td>
+            <td>Set to 5×h. Captures substrate and above-substrate fields. Critical for correct modal decomposition in HFSS.</td>
+          </tr>
+          <tr>
+            <td>Air Box</td>
+            <td>Simulation bounding domain</td>
+            <td>Encloses the antenna in free space. Must be at least λ/4 from radiating elements to avoid boundary reflections interfering with near-field accuracy.</td>
+          </tr>
+          <tr>
+            <td>Radiation Boundary</td>
+            <td>Absorbing boundary condition surface</td>
+            <td>Applied on air box faces. Simulates open space. Distance ≥ λ/4 ensures accuracy. PML boundaries can be used at λ/8 for more compact simulations.</td>
+          </tr>
+          <tr>
+            <td>Mesh Cell Size</td>
+            <td>FEM mesh discretisation</td>
+            <td>Coarser mesh → faster solve, less RAM, lower accuracy. λ/30 is recommended as a good speed/accuracy trade-off. λ/50 for final validation sweeps. Use λ/100 on feed gaps.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─── TAB 5: HFSS / CST SETUP ─── -->
+  <div class="tab-panel" id="tab-hfss">
+    <div class="panel">
+      <div class="panel-title">HFSS / CST Simulation Setup Guide</div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+        <div class="sim-card">
+          <div class="sim-card-title">Wave Port Placement</div>
+          <ul class="sim-list">
+            <li>Create port on the <code>-y</code> face of the feed line substrate cross-section</li>
+            <li>Port width: <code id="h-wp-w">5 × Wf</code> — centred on feed line</li>
+            <li>Port height: <code id="h-wp-h">5 × h</code> — centred on conductor layer</li>
+            <li>Assign <strong>Wave Port 1</strong>, mode 1 (dominant TEM mode)</li>
+            <li>Enable <em>Renormalise impedance</em> to <code>50 Ω</code></li>
+            <li>In CST: use <em>Waveguide Port</em> with same dimensions</li>
+            <li>Ensure port face does NOT intersect the patch boundary</li>
+          </ul>
+        </div>
+
+        <div class="sim-card">
+          <div class="sim-card-title">Air Box &amp; Radiation Boundary</div>
+          <ul class="sim-list">
+            <li>Create a <em>Box</em> object centred on the antenna assembly</li>
+            <li>Lateral clearance: ≥ λ₀/4 on all ±x, ±y faces → Air Box width: <code id="h-abw">—</code></li>
+            <li>Height clearance: ≥ λ₀/4 above patch → Air Box height: <code id="h-abh">—</code></li>
+            <li>Assign <em>Radiation Boundary</em> (HFSS) or <em>Open (Add Space)</em> (CST) on all air box faces except the port face</li>
+            <li>Do NOT assign radiation boundary on the wave port face</li>
+            <li>For broadside patterns ensure air box is symmetric about z-axis</li>
+          </ul>
+        </div>
+
+        <div class="sim-card">
+          <div class="sim-card-title">Mesh Refinement Strategy</div>
+          <ul class="sim-list">
+            <li>Global maximum cell size: <code id="h-mg">λ_g / 30</code> (recommended)</li>
+            <li>Add mesh operation on <strong>feed gap region</strong>: <code>λ_g / 100</code> or 0.1 mm, whichever smaller</li>
+            <li>Add mesh on <strong>inset notch corners</strong>: radiused or ≥ 2 cells across gap width</li>
+            <li>Substrate layer: at least <strong>3–4 cells through thickness</strong></li>
+            <li>Conductor layer: if solved as 3D (not impedance BC), resolve skin depth — minimum 2 cells deep</li>
+            <li>For HFSS: use <em>Initial Mesh Settings → Lambda Refinement</em> then adaptive passes</li>
+            <li>For CST: use <em>Mesh Type: Hexahedral</em> with PBA; set cells per wavelength ≥ 30</li>
+          </ul>
+        </div>
+
+        <div class="sim-card">
+          <div class="sim-card-title">Frequency Sweep Setup</div>
+          <ul class="sim-list">
+            <li>Adaptive solve frequency: <code id="h-fc">set to target f₀</code></li>
+            <li>Sweep type: <em>Fast (Interpolating)</em> for broadband; <em>Discrete</em> for pinpoint accuracy</li>
+            <li>Sweep range: <code>0.5 × f₀</code> to <code>1.5 × f₀</code> — covers full impedance bandwidth</li>
+            <li>Step size: <code>f₀ / 200</code> for smooth S₁₁ curve</li>
+            <li>Request: S-parameters, Z-parameters, radiation efficiency, 3D radiation pattern at f₀</li>
+            <li>Convergence: ΔS &lt; 0.02 between adaptive passes</li>
+            <li>Minimum 3 adaptive passes (5 recommended for final design)</li>
+          </ul>
+        </div>
+
+        <div class="sim-card">
+          <div class="sim-card-title">Material Assignments (HFSS)</div>
+          <ul class="sim-list">
+            <li>Substrate object: assign <code>εr</code>, <code>tan δ</code>, μr = 1</li>
+            <li>Patch &amp; ground: use <em>Finite Conductivity</em> boundary (surface impedance) with <code>σ</code> value</li>
+            <li>For t ≥ 3× skin depth: model as 3D solid conductor</li>
+            <li>Air box region: assign <code>vacuum</code> (default)</li>
+            <li>In CST: <em>Material Library</em> → set same parameters under <em>Properties</em></li>
+          </ul>
+        </div>
+
+        <div class="sim-card">
+          <div class="sim-card-title">Post-Processing &amp; Validation</div>
+          <ul class="sim-list">
+            <li>Check <strong>S₁₁ &lt; −10 dB</strong> at f₀ for −10 dB impedance bandwidth</li>
+            <li>Plot <em>Smith Chart</em>: confirm loop passes through or near 50 Ω + j0</li>
+            <li>Verify <strong>VSWR &lt; 2:1</strong> across operational bandwidth</li>
+            <li>Radiation Pattern: confirm broadside gain, check cross-pol level (&lt; −20 dB ideal)</li>
+            <li>Radiation Efficiency: typically 85–98% for low-loss substrates</li>
+            <li>Compare simulated vs. calculated resonant frequency — expect &lt; 2% error</li>
+            <li>If S₁₁ notch is off: tune <code>y₀</code> (inset depth) and <code>g</code> (gap) iteratively</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Live values summary -->
+      <div class="panel mt16" style="background: var(--bg-card);">
+        <div class="panel-title">Current Simulation Parameters Summary</div>
+        <div class="results-grid">
+          <div class="result-card amber"><div class="result-label">Solve Freq</div><div class="result-value" id="sim-f">—</div><div class="result-unit">GHz</div></div>
+          <div class="result-card"><div class="result-label">Port Width</div><div class="result-value" id="sim-pw">—</div><div class="result-unit">mm</div></div>
+          <div class="result-card"><div class="result-label">Port Height</div><div class="result-value" id="sim-ph">—</div><div class="result-unit">mm</div></div>
+          <div class="result-card"><div class="result-label">Air Box W</div><div class="result-value" id="sim-abw">—</div><div class="result-unit">mm</div></div>
+          <div class="result-card"><div class="result-label">Air Box H</div><div class="result-value" id="sim-abh">—</div><div class="result-unit">mm</div></div>
+          <div class="result-card highlight"><div class="result-label">Mesh Rec.</div><div class="result-value" id="sim-mesh">—</div><div class="result-unit">mm</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- end main-container -->
+
+<!-- ─── PRINT REPORT OVERLAY ─── -->
+<div id="print-report">
+  <div class="report-header">
+    <div>
+      <div class="report-title">Microstrip Patch Antenna Design Report</div>
+      <div class="report-subtitle">Rectangular Inset-Fed Microstrip Patch Antenna · IEEE Standard Design</div>
+    </div>
+    <div class="report-meta">
+      <div id="report-date"></div>
+      <div>Generated by Microstrip Patch Antenna Design Calculator</div>
+    </div>
+  </div>
+
+  <div class="report-section-title">Input Parameters</div>
+  <table class="report-table" id="report-inputs">
+    <thead><tr><th>Parameter</th><th>Value</th><th>Unit</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="report-section-title">Calculated Antenna Parameters</div>
+  <table class="report-table" id="report-results">
+    <thead><tr><th>Parameter</th><th>Value</th><th>Unit</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="report-section-title">Simulation Setup Parameters</div>
+  <table class="report-table" id="report-sim">
+    <thead><tr><th>Parameter</th><th>Value</th><th>Unit</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="report-section-title">Key Formulas Used</div>
+  <div id="report-formulas" style="font-family:monospace; font-size:0.8rem; line-height:2; padding:8px; border:1px solid #ddd;"></div>
+
+  <div class="report-section-title">Design Notes</div>
+  <div id="report-notes" style="font-size:0.82rem; line-height:1.7; padding:8px; border:1px solid #ddd;"></div>
+
+  <div class="report-footer">
+    Microstrip Patch Antenna Design Calculator · IEEE/Bahl &amp; Trivedi equations · For use with HFSS, CST Microwave Studio
+    <br>Verify all parameters before fabrication. Simulation results may differ from theory due to tolerance, connector effects, and surface roughness.
+  </div>
+
+  <div style="margin-top:20px; display:flex; gap:12px;">
+    <button onclick="window.print()" style="padding:8px 20px; background:#003060; color:white; border:none; cursor:pointer; border-radius:4px;">🖨 Print / Save PDF</button>
+    <button onclick="closeReport()" style="padding:8px 20px; background:#555; color:white; border:none; cursor:pointer; border-radius:4px;">✕ Close</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT — CALCULATION ENGINE
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────────────────
+// GLOBAL STATE
+// ─────────────────────────────────────────────────────────────
+const c0 = 3e8;   // speed of light (m/s)
+const mu0 = 4 * Math.PI * 1e-7;  // permeability of free space
+
+let results = {}; // store all calculated values
+
+// Conductor conductivities (S/m)
+const conductorSigma = {
+  copper:   5.8e7,
+  silver:   6.2e7,
+  gold:     4.1e7,
+  aluminum: 3.5e7,
+};
+
+// ─────────────────────────────────────────────────────────────
+// TAB NAVIGATION
+// ─────────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'tab-diagrams') renderCurrentViz();
+}
+
+// ─────────────────────────────────────────────────────────────
+// SUBSTRATE CHANGE HANDLER
+// ─────────────────────────────────────────────────────────────
+function onSubstrateChange() {
+  const val = document.getElementById('substrate').value;
+  const customDiv = document.getElementById('custom-substrate');
+  if (val === 'custom') {
+    customDiv.classList.remove('hidden');
+  } else {
+    customDiv.classList.add('hidden');
+  }
+  recalculate();
+}
+
+// ─────────────────────────────────────────────────────────────
+// GET ACTIVE εr AND h
+// ─────────────────────────────────────────────────────────────
+function getSubstrateParams() {
+  const type = document.getElementById('substrate').value;
+  let er, h, tand;
+  if (type === 'fr4') {
+    er = 4.4; h = 1.6; tand = 0.02;
+  } else if (type === 'rogers') {
+    er = 2.2; h = 1.575; tand = 0.0009;
+  } else {
+    er   = parseFloat(document.getElementById('er-custom').value) || 4.4;
+    h    = parseFloat(document.getElementById('h-custom').value) || 1.6;
+    tand = parseFloat(document.getElementById('tand-custom').value) || 0.02;
+  }
+  return { er, h, tand };
+}
+
+function getConductorSigma() {
+  const type = document.getElementById('conductor').value;
+  if (type === 'custom') {
+    const el = document.getElementById('sigma-custom');
+    return parseFloat(el.value) || 5.8e7;
+  }
+  return conductorSigma[type] || 5.8e7;
+}
+
+// ─────────────────────────────────────────────────────────────
+// MAIN CALCULATION FUNCTION
+// ─────────────────────────────────────────────────────────────
+function recalculate() {
+  const f_GHz = parseFloat(document.getElementById('freq').value) || 2.4;
+  const f = f_GHz * 1e9;           // Hz
+  const { er, h: h_mm, tand } = getSubstrateParams();
+  const h = h_mm * 1e-3;            // m
+  const t_mm = parseFloat(document.getElementById('t-val').value) || 0.035;
+  const t = t_mm * 1e-3;            // m
+  const sigma = getConductorSigma();
+
+  // Show/hide custom conductor input
+  const condType = document.getElementById('conductor').value;
+  document.getElementById('custom-conductor').classList.toggle('hidden', condType !== 'custom');
+
+  // Update display fields
+  document.getElementById('er-display').value = er.toFixed(2);
+  document.getElementById('h-display').value = h_mm.toFixed(4);
+
+  // ── 1. Free-space wavelength ──────────────────────────────
+  const lambda0 = c0 / f;           // m
+
+  // ── 2. Patch Width W ─────────────────────────────────────
+  const W = (c0 / (2 * f)) * Math.sqrt(2 / (er + 1));  // m
+
+  // ── 3. Effective dielectric constant εreff ───────────────
+  const ereff = (er + 1) / 2 + (er - 1) / 2 * Math.pow(1 + 12 * h / W, -0.5);
+
+  // ── 4. Fringing length extension ΔL ─────────────────────
+  const dL = 0.412 * h * ((ereff + 0.3) * (W / h + 0.264)) /
+                          ((ereff - 0.258) * (W / h + 0.8));
+
+  // ── 5. Patch Length L ────────────────────────────────────
+  const L = c0 / (2 * f * Math.sqrt(ereff)) - 2 * dL;
+
+  // ── 6. Ground plane dimensions ───────────────────────────
+  const Wg = W + 6 * h;
+  const Lg = L + 6 * h;
+
+  // ── 7. 50-Ω Feed Width Wf ────────────────────────────────
+  const Z0 = 50;
+  let Wf;
+  const A = (Z0 / 60) * Math.sqrt((er + 1) / 2) + ((er - 1) / (er + 1)) * (0.23 + 0.11 / er);
+  const B = 377 * Math.PI / (2 * Z0 * Math.sqrt(er));
+  const Wf_A = (8 * h * Math.exp(A)) / (Math.exp(2 * A) - 2);
+  const Wf_B = (2 * h / Math.PI) * (B - 1 - Math.log(2 * B - 1) +
+               ((er - 1) / (2 * er)) * (Math.log(B - 1) + 0.39 - 0.61 / er));
+  // Choose formula based on W/h ratio heuristic
+  Wf = (Wf_A / h < 2) ? Wf_A : Wf_B;
+  if (Wf <= 0) Wf = Wf_B > 0 ? Wf_B : 0.001; // safety
+
+  // ── 8. Inset Feed Position y₀ ────────────────────────────
+  // Edge input resistance
+  const Rin0 = 90 * (er * er / (er - 1)) * Math.pow(L / W, 2);
+  let y0;
+  const ratio = Z0 / Rin0;
+  if (ratio >= 0 && ratio <= 1) {
+    y0 = (L / Math.PI) * Math.acos(Math.sqrt(ratio));
+  } else {
+    y0 = L / 4; // fallback
+  }
+
+  // ── 9. Feed Gap g ────────────────────────────────────────
+  const g = h / 2;   // typical rule: g = h/2
+
+  // ── 10. Feed Length Lf ───────────────────────────────────
+  const Lf = (Lg - L) / 2;
+
+  // ── 11. Waveguide Port ───────────────────────────────────
+  const WP_W = 5 * Wf;
+  const WP_H = 5 * h;
+
+  // ── 12. Air Box ──────────────────────────────────────────
+  const AB_W = Wg + 2 * (lambda0 / 4);
+  const AB_H = Lg + 2 * (lambda0 / 4);
+  const AB_Z = h + t + lambda0 / 4;
+  const radBound = lambda0 / 4;
+
+  // ── 13. Guided wavelength & Mesh ─────────────────────────
+  const lambda_g = lambda0 / Math.sqrt(ereff);
+  const mesh_coarse = lambda_g / 20;
+  const mesh_rec    = lambda_g / 30;
+  const mesh_fine   = lambda_g / 50;
+
+  // ── 14. Skin Depth ────────────────────────────────────────
+  const skinDepth = 1 / Math.sqrt(Math.PI * f * mu0 * sigma);  // m
+
+  // ── Convert to mm for display ────────────────────────────
+  const mm = (x) => (x * 1e3).toFixed(4);
+  const mm2 = (x) => (x * 1e3).toFixed(3);
+  const mm3 = (x) => (x * 1e3).toFixed(2);
+  const um  = (x) => (x * 1e6).toFixed(3);
+
+  // Store results globally for diagram rendering and report
+  results = {
+    f_GHz, f, er, h_mm, h, t_mm, t, tand, sigma,
+    lambda0, lambda_g,
+    W, L, ereff, dL,
+    Wg, Lg,
+    Wf, Lf, y0, g,
+    WP_W, WP_H,
+    AB_W, AB_H, AB_Z, radBound,
+    mesh_coarse, mesh_rec, mesh_fine,
+    skinDepth, Rin0
+  };
+
+  // ── Update DOM ────────────────────────────────────────────
+  set('res-W',    mm(W));
+  set('res-L',    mm(L));
+  set('res-ereff', ereff.toFixed(4));
+  set('res-dL',   mm(dL));
+  set('res-Wg',   mm(Wg));
+  set('res-Lg',   mm(Lg));
+  set('res-Wf',   mm(Wf));
+  set('res-Lf',   mm(Lf));
+  set('res-y0',   mm(y0));
+  set('res-g',    mm(g));
+  set('res-h',    h_mm.toFixed(4));
+  set('res-t',    t_mm.toFixed(4));
+  set('res-skin', um(skinDepth));
+  set('res-wpw',  mm(WP_W));
+  set('res-wph',  mm(WP_H));
+  set('res-abw',  mm3(AB_W));
+  set('res-abh',  mm3(AB_H));
+  set('res-rad',  mm3(radBound));
+  set('res-mc',   mm2(mesh_coarse));
+  set('res-mr',   mm2(mesh_rec));
+  set('res-mf',   mm2(mesh_fine));
+
+  // Status bar
+  set('sb-freq',  f_GHz.toFixed(2) + ' GHz');
+  set('sb-sub',   document.getElementById('substrate').value.toUpperCase());
+  set('sb-er',    er.toFixed(2));
+  set('sb-lambda', (lambda0*1000).toFixed(2) + ' mm');
+
+  // Lambda strip
+  set('lam0-val', (lambda0*1000).toFixed(2) + ' mm');
+  set('lamg-val', (lambda_g*1000).toFixed(2) + ' mm');
+  set('lamq-val', (lambda0*1000/4).toFixed(2) + ' mm');
+  set('lam20-val',(lambda_g*1000/20).toFixed(3) + ' mm');
+
+  // HFSS tab inline values
+  set('h-wp-w',  '5 × Wf = ' + mm(WP_W) + ' mm');
+  set('h-wp-h',  '5 × h = ' + mm(WP_H) + ' mm');
+  set('h-abw',   mm3(AB_W) + ' mm');
+  set('h-abh',   mm3(AB_H) + ' mm');
+  set('h-mg',    mm2(mesh_rec) + ' mm');
+  set('h-fc',    f_GHz.toFixed(2) + ' GHz');
+
+  // HFSS summary cards
+  set('sim-f',    f_GHz.toFixed(2));
+  set('sim-pw',   mm(WP_W));
+  set('sim-ph',   mm(WP_H));
+  set('sim-abw',  mm3(AB_W));
+  set('sim-abh',  mm3(AB_H));
+  set('sim-mesh', mm2(mesh_rec));
+
+  // Re-render diagram if visible
+  if (document.getElementById('tab-diagrams').classList.contains('active')) {
+    renderCurrentViz();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// HELPER
+// ─────────────────────────────────────────────────────────────
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function fmt(x_m) {
+  return (x_m * 1000).toFixed(3);
+}
+
+// ─────────────────────────────────────────────────────────────
+// RESET DEFAULTS
+// ─────────────────────────────────────────────────────────────
+function resetDefaults() {
+  document.getElementById('freq').value      = 2.4;
+  document.getElementById('substrate').value = 'fr4';
+  document.getElementById('conductor').value = 'copper';
+  document.getElementById('t-val').value     = 0.035;
+  document.getElementById('custom-substrate').classList.add('hidden');
+  document.getElementById('custom-conductor').classList.add('hidden');
+  recalculate();
+}
+
+// ─────────────────────────────────────────────────────────────
+// VISUALIZATION ENGINE
+// ─────────────────────────────────────────────────────────────
+let currentViz = 'top';
+
+function showViz(which) {
+  currentViz = which;
+  document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderCurrentViz();
+}
+
+function renderCurrentViz() {
+  if (!results.W) { recalculate(); }
+  if (currentViz === 'top')  renderTopView();
+  else if (currentViz === 'side') renderSideView();
+  else if (currentViz === 'iso')  renderIsometric();
+}
+
+// ── Dimension arrow helper ────────────────────────────────────
+function arrowH(x1, x2, y, label, above) {
+  const dy = above ? -10 : 10;
+  const ah = above ? -5 : 5;
+  return `
+    <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="#4ea8de" stroke-width="0.7" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <line x1="${x1}" y1="${y-8}" x2="${x1}" y2="${y+8}" stroke="#4ea8de" stroke-width="0.5"/>
+    <line x1="${x2}" y1="${y-8}" x2="${x2}" y2="${y+8}" stroke="#4ea8de" stroke-width="0.5"/>
+    <text x="${(x1+x2)/2}" y="${y+dy}" text-anchor="middle" fill="#4ea8de" font-size="9" font-family="monospace">${label}</text>`;
+}
+
+function arrowV(x, y1, y2, label, right) {
+  const dx = right ? 10 : -10;
+  return `
+    <line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#4ea8de" stroke-width="0.7" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <line x1="${x-8}" y1="${y1}" x2="${x+8}" y2="${y1}" stroke="#4ea8de" stroke-width="0.5"/>
+    <line x1="${x-8}" y1="${y2}" x2="${x+8}" y2="${y2}" stroke="#4ea8de" stroke-width="0.5"/>
+    <text x="${x+dx}" y="${(y1+y2)/2+3}" text-anchor="${right?'start':'end'}" fill="#4ea8de" font-size="9" font-family="monospace">${label}</text>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// TOP VIEW SVG
+// ─────────────────────────────────────────────────────────────
+function renderTopView() {
+  const r = results;
+  const mm = x => x * 1e3;
+
+  // Scale: fit into ~700 × 460 canvas
+  const W_mm  = mm(r.W),  L_mm  = mm(r.L);
+  const Wg_mm = mm(r.Wg), Lg_mm = mm(r.Lg);
+  const Wf_mm = mm(r.Wf), Lf_mm = mm(r.Lf);
+  const y0_mm = mm(r.y0), g_mm  = mm(r.g);
+
+  const svgW = 760, svgH = 520;
+  const margin = 80;
+  const drawW = svgW - 2 * margin;
+  const drawH = svgH - 2 * margin - 40;
+
+  // Scale based on ground plane
+  const scale = Math.min(drawW / Wg_mm, drawH / Lg_mm) * 0.82;
+
+  // Ground plane in SVG coords (centered)
+  const gW = Wg_mm * scale, gH = Lg_mm * scale;
+  const gX = (svgW - gW) / 2, gY = (svgH - gH) / 2 + 20;
+
+  // Patch coords
+  const pW = W_mm * scale,  pH = L_mm * scale;
+  const pX = gX + (gW - pW) / 2;
+  const pY = gY + (gH - pH) / 2;
+
+  // Feed line: centred horizontally, extends from bottom of ground
+  const fW = Wf_mm * scale;
+  const fX = gX + (gW - fW) / 2;
+  const fTop = pY + pH;          // starts at bottom of patch
+  const fBot = gY + gH;          // ends at bottom of ground
+
+  // Inset: feed goes up into patch by y0
+  const y0s = y0_mm * scale;
+  const fInTop = pY + pH - y0s;  // top of inset inside patch
+  const gs = g_mm * scale;       // gap size in svg
+
+  // Notch width = feed width + gap on each side
+  const notchW = fW + 2 * gs;
+  const notchX = gX + (gW - notchW) / 2;
+
+  const defs = `<defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#4ea8de"/>
+    </marker>
+    <linearGradient id="gnd-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#1a3e28"/>
+      <stop offset="100%" stop-color="#0d2418"/>
+    </linearGradient>
+    <linearGradient id="patch-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#b87333"/>
+      <stop offset="100%" stop-color="#8B4513"/>
+    </linearGradient>
+    <linearGradient id="feed-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#a0621a"/>
+      <stop offset="100%" stop-color="#c08030"/>
+    </linearGradient>
+  </defs>`;
+
+  let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#030c16">
+  ${defs}
+  <!-- Title -->
+  <text x="${svgW/2}" y="22" text-anchor="middle" fill="#4ea8de" font-size="13" font-family="monospace" letter-spacing="2">TOP VIEW — MICROSTRIP PATCH ANTENNA</text>
+  <text x="${svgW/2}" y="36" text-anchor="middle" fill="#2a5070" font-size="9" font-family="monospace">f = ${r.f_GHz} GHz  |  εr = ${r.er}  |  h = ${r.h_mm} mm</text>
+
+  <!-- Grid lines (subtle) -->`;
+
+  // Subtle grid
+  for (let xi = 0; xi < svgW; xi += 30) {
+    svg += `<line x1="${xi}" y1="45" x2="${xi}" y2="${svgH}" stroke="#0a1e30" stroke-width="0.5"/>`;
+  }
+  for (let yi = 45; yi < svgH; yi += 30) {
+    svg += `<line x1="0" y1="${yi}" x2="${svgW}" y2="${yi}" stroke="#0a1e30" stroke-width="0.5"/>`;
+  }
+
+  svg += `
+  <!-- Ground Plane -->
+  <rect x="${gX}" y="${gY}" width="${gW}" height="${gH}" fill="url(#gnd-grad)" stroke="#2a6040" stroke-width="1.2"/>
+  <text x="${gX+6}" y="${gY+14}" fill="#3a8050" font-size="8" font-family="monospace">GROUND PLANE</text>
+
+  <!-- Feed line (below patch, above ground) -->
+  <rect x="${fX}" y="${fTop + gs}" width="${fW}" height="${fBot - fTop - gs}" fill="url(#feed-grad)" stroke="#d4861e" stroke-width="0.8"/>
+
+  <!-- Inset inside patch: cut notches out of patch, draw feed stub -->
+  <!-- Left notch -->
+  <rect x="${notchX}" y="${fInTop}" width="${(notchW-fW)/2}" height="${y0s - gs}" fill="url(#gnd-grad)" stroke="#2a6040" stroke-width="0.5"/>
+  <!-- Right notch -->
+  <rect x="${notchX+(notchW+fW)/2}" y="${fInTop}" width="${(notchW-fW)/2}" height="${y0s - gs}" fill="url(#gnd-grad)" stroke="#2a6040" stroke-width="0.5"/>
+  <!-- Inset feed line inside patch -->
+  <rect x="${fX}" y="${fInTop}" width="${fW}" height="${y0s - gs}" fill="url(#feed-grad)" stroke="#d4861e" stroke-width="0.7"/>
+
+  <!-- Patch (draw over notch region) -->
+  <rect x="${pX}" y="${pY}" width="${pW}" height="${pH}" fill="url(#patch-grad)" stroke="#e09030" stroke-width="1.4"/>
+  <!-- Notch cutouts in patch (overwrite patch with ground colour) -->
+  <rect x="${notchX}" y="${fInTop}" width="${(notchW-fW)/2}" height="${y0s}" fill="#0d2418" stroke="none"/>
+  <rect x="${notchX+(notchW+fW)/2}" y="${fInTop}" width="${(notchW-fW)/2}" height="${y0s}" fill="#0d2418" stroke="none"/>
+  <!-- Inset feed line redrawn on top -->
+  <rect x="${fX}" y="${fInTop}" width="${fW}" height="${y0s - gs}" fill="url(#feed-grad)" stroke="#d4861e" stroke-width="0.7"/>
+
+  <!-- Gap lines -->
+  <rect x="${fX}" y="${fTop}" width="${fW}" height="${gs}" fill="#050e1a" stroke="#00c2ff" stroke-width="0.8" stroke-dasharray="2,2"/>
+  <text x="${fX + fW + 4}" y="${fTop + gs/2 + 3}" fill="#00c2ff" font-size="8" font-family="monospace">gap g</text>
+
+  <!-- Patch label -->
+  <text x="${pX + pW/2}" y="${pY + pH/2}" text-anchor="middle" fill="#f5d090" font-size="11" font-family="monospace" font-weight="bold">PATCH</text>
+  <!-- Feed label -->
+  <text x="${fX + fW/2}" y="${(fTop+fBot)/2 + 4}" text-anchor="middle" fill="#f0c060" font-size="9" font-family="monospace">FEED</text>
+
+  <!-- Waveguide port indicator -->
+  <line x1="${fX - 6}" y1="${fBot}" x2="${fX + fW + 6}" y2="${fBot}" stroke="#00ff88" stroke-width="2.5"/>
+  <text x="${fX + fW/2}" y="${fBot + 14}" text-anchor="middle" fill="#00ff88" font-size="9" font-family="monospace">▲ WAVEGUIDE PORT</text>
+  <text x="${fX + fW/2}" y="${fBot + 25}" text-anchor="middle" fill="#00aa55" font-size="8" font-family="monospace">${fmt(r.WP_W)} × ${fmt(r.WP_H)} mm</text>
+
+  <!-- DIMENSION ARROWS -->`;
+
+  // Wg horizontal (top)
+  svg += arrowH(gX, gX + gW, gY - 22, `Wg = ${fmt(r.Wg)} mm`, true);
+  // W horizontal (mid, above patch)
+  svg += arrowH(pX, pX + pW, pY - 12, `W = ${fmt(r.W)} mm`, true);
+  // Lg vertical (right)
+  svg += arrowV(gX + gW + 22, gY, gY + gH, `Lg = ${fmt(r.Lg)} mm`, true);
+  // L vertical (left of patch)
+  svg += arrowV(pX - 16, pY, pY + pH, `L = ${fmt(r.L)} mm`, false);
+  // Wf horizontal (below)
+  svg += arrowH(fX, fX + fW, fBot + 38, `Wf = ${fmt(r.Wf)} mm`, false);
+  // y0 vertical
+  svg += arrowV(fX - 14, fInTop, fTop, `y₀ = ${fmt(r.y0)} mm`, false);
+  // Lf
+  svg += arrowV(fX + fW + 14, fTop + gs, fBot, `Lf = ${fmt(r.Lf)} mm`, true);
+
+  svg += `
+  <!-- Coordinate cross -->
+  <line x1="32" y1="${svgH-32}" x2="62" y2="${svgH-32}" stroke="#2a5070" stroke-width="1"/>
+  <line x1="32" y1="${svgH-32}" x2="32" y2="${svgH-62}" stroke="#2a5070" stroke-width="1"/>
+  <text x="65" y="${svgH-29}" fill="#2a5070" font-size="9" font-family="monospace">x</text>
+  <text x="28" y="${svgH-64}" fill="#2a5070" font-size="9" font-family="monospace">y</text>
+</svg>`;
+
+  document.getElementById('viz-area').innerHTML = svg;
+}
+
+// ─────────────────────────────────────────────────────────────
+// SIDE VIEW SVG
+// ─────────────────────────────────────────────────────────────
+function renderSideView() {
+  const r = results;
+  const mm = x => x * 1e3;
+
+  const W_mm  = mm(r.W), Wg_mm = mm(r.Wg);
+  const h_mm  = r.h_mm,  t_mm  = r.t_mm;
+  const Wf_mm = mm(r.Wf);
+
+  const svgW = 760, svgH = 420;
+  const margin = 100;
+  const drawW = svgW - 2 * margin;
+
+  const scale = drawW / (Wg_mm * 1.1);
+  const gW = Wg_mm * scale;
+  const gX = (svgW - gW) / 2;
+
+  // Vertical scale (exaggerated for visibility)
+  const vScale = 8;
+  const gndH = 4;                       // ground plane visual height
+  const subH = Math.max(h_mm * vScale, 30);  // substrate
+  const condH = Math.max(t_mm * vScale, 8);  // conductor
+
+  const baseY = 300;  // bottom of stack
+  const gndY  = baseY;
+  const subY  = gndY - subH;
+  const condY = subY - condH;
+
+  const pW = mm(r.W) * scale;
+  const pX = gX + (gW - pW) / 2;
+  const fW = Wf_mm * scale;
+  const fX = gX + (gW - fW) / 2;
+
+  const defs = `<defs>
+    <marker id="arr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#4ea8de"/>
+    </marker>
+    <linearGradient id="sub-grad2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#162840"/>
+      <stop offset="100%" stop-color="#0c1c2e"/>
+    </linearGradient>
+  </defs>`;
+
+  let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#030c16">
+  ${defs}
+  <text x="${svgW/2}" y="22" text-anchor="middle" fill="#4ea8de" font-size="13" font-family="monospace" letter-spacing="2">SIDE VIEW (CROSS-SECTION)</text>
+  <text x="${svgW/2}" y="36" text-anchor="middle" fill="#2a5070" font-size="9" font-family="monospace">Vertical scale exaggerated for clarity · t = ${t_mm} mm · h = ${h_mm} mm</text>`;
+
+  // Grid
+  for (let xi = 0; xi < svgW; xi += 30) svg += `<line x1="${xi}" y1="45" x2="${xi}" y2="${svgH}" stroke="#0a1e30" stroke-width="0.5"/>`;
+  for (let yi = 45; yi < svgH; yi += 30) svg += `<line x1="0" y1="${yi}" x2="${svgW}" y2="${yi}" stroke="#0a1e30" stroke-width="0.5"/>`;
+
+  svg += `
+  <!-- Substrate layer -->
+  <rect x="${gX}" y="${subY}" width="${gW}" height="${subH}" fill="url(#sub-grad2)" stroke="#1a3a5a" stroke-width="1"/>
+  <text x="${gX + gW/2}" y="${subY + subH/2 + 4}" text-anchor="middle" fill="#3a6080" font-size="10" font-family="monospace">SUBSTRATE  εr = ${r.er}  h = ${h_mm} mm</text>
+
+  <!-- Ground plane (bottom) -->
+  <rect x="${gX}" y="${gndY}" width="${gW}" height="${gndH}" fill="#2a6040" stroke="#2a8050" stroke-width="1"/>
+  <text x="${gX + gW/2}" y="${gndY + gndH + 12}" text-anchor="middle" fill="#3a8050" font-size="10" font-family="monospace">GROUND PLANE  t = ${t_mm} mm</text>
+
+  <!-- Patch conductor (top) -->
+  <rect x="${pX}" y="${condY}" width="${pW}" height="${condH}" fill="#c07020" stroke="#e09030" stroke-width="1.2"/>
+  <text x="${pX + pW/2}" y="${condY - 6}" text-anchor="middle" fill="#e09030" font-size="10" font-family="monospace">PATCH  W = ${fmt(r.W)} mm</text>
+
+  <!-- Feed line conductor -->
+  <rect x="${fX}" y="${condY}" width="${fW}" height="${condH}" fill="#c07020" stroke="#e09030" stroke-width="0.8"/>
+  <text x="${fX + fW/2}" y="${condY + condH + 14}" text-anchor="middle" fill="#c07020" font-size="8" font-family="monospace">FEED Wf=${fmt(r.Wf)} mm</text>
+
+  <!-- Air above -->
+  <rect x="${gX}" y="${condY - 40}" width="${gW}" height="40" fill="rgba(0,60,100,0.12)" stroke="rgba(0,100,200,0.15)" stroke-width="0.7" stroke-dasharray="4,3"/>
+  <text x="${gX + 8}" y="${condY - 22}" fill="#1a4060" font-size="9" font-family="monospace">AIR / FREE SPACE</text>
+
+  <!-- Radiation boundary indicator -->
+  <rect x="${gX - 25}" y="${condY - 80}" width="${gW + 50}" height="${gndY + gndH - condY + 120}" fill="none" stroke="#00ff88" stroke-width="1.2" stroke-dasharray="5,4"/>
+  <text x="${gX - 25 + 4}" y="${condY - 68}" fill="#00ff88" font-size="8" font-family="monospace">RADIATION BOUNDARY (λ₀/4 from antenna)</text>
+
+  <!-- DIMENSION ARROWS -->
+  <!-- h (substrate thickness) -->
+  <line x1="${gX + gW + 22}" y1="${subY}" x2="${gX + gW + 22}" y2="${gndY}" stroke="#4ea8de" stroke-width="0.7" marker-start="url(#arr2)" marker-end="url(#arr2)"/>
+  <line x1="${gX + gW + 14}" y1="${subY}" x2="${gX + gW + 30}" y2="${subY}" stroke="#4ea8de" stroke-width="0.5"/>
+  <line x1="${gX + gW + 14}" y1="${gndY}" x2="${gX + gW + 30}" y2="${gndY}" stroke="#4ea8de" stroke-width="0.5"/>
+  <text x="${gX + gW + 36}" y="${subY + subH/2 + 3}" fill="#4ea8de" font-size="9" font-family="monospace">h = ${h_mm} mm</text>
+
+  <!-- t (conductor) -->
+  <line x1="${gX + gW + 22}" y1="${condY}" x2="${gX + gW + 22}" y2="${condY + condH}" stroke="#4ea8de" stroke-width="0.7" marker-start="url(#arr2)" marker-end="url(#arr2)"/>
+  <line x1="${gX + gW + 14}" y1="${condY}" x2="${gX + gW + 30}" y2="${condY}" stroke="#4ea8de" stroke-width="0.5"/>
+  <line x1="${gX + gW + 14}" y1="${condY + condH}" x2="${gX + gW + 30}" y2="${condY + condH}" stroke="#4ea8de" stroke-width="0.5"/>
+  <text x="${gX + gW + 36}" y="${condY + condH/2 + 3}" fill="#4ea8de" font-size="9" font-family="monospace">t = ${t_mm} mm</text>
+
+  <!-- Wg -->
+  <line x1="${gX}" y1="${gndY + gndH + 30}" x2="${gX + gW}" y2="${gndY + gndH + 30}" stroke="#4ea8de" stroke-width="0.7" marker-start="url(#arr2)" marker-end="url(#arr2)"/>
+  <line x1="${gX}" y1="${gndY + gndH + 22}" x2="${gX}" y2="${gndY + gndH + 38}" stroke="#4ea8de" stroke-width="0.5"/>
+  <line x1="${gX+gW}" y1="${gndY + gndH + 22}" x2="${gX+gW}" y2="${gndY + gndH + 38}" stroke="#4ea8de" stroke-width="0.5"/>
+  <text x="${gX + gW/2}" y="${gndY + gndH + 44}" text-anchor="middle" fill="#4ea8de" font-size="9" font-family="monospace">Wg = ${fmt(r.Wg)} mm</text>
+
+  <!-- W -->
+  <line x1="${pX}" y1="${condY - 20}" x2="${pX + pW}" y2="${condY - 20}" stroke="#4ea8de" stroke-width="0.7" marker-start="url(#arr2)" marker-end="url(#arr2)"/>
+  <line x1="${pX}" y1="${condY - 28}" x2="${pX}" y2="${condY - 12}" stroke="#4ea8de" stroke-width="0.5"/>
+  <line x1="${pX+pW}" y1="${condY - 28}" x2="${pX+pW}" y2="${condY - 12}" stroke="#4ea8de" stroke-width="0.5"/>
+  <text x="${pX + pW/2}" y="${condY - 28}" text-anchor="middle" fill="#4ea8de" font-size="9" font-family="monospace">W = ${fmt(r.W)} mm</text>
+
+  <!-- Axis labels -->
+  <text x="14" y="${subY + subH/2}" fill="#2a5070" font-size="9" font-family="monospace" writing-mode="tb">z</text>
+  <text x="14" y="${gndY + 4}" fill="#2a5070" font-size="9" font-family="monospace">x →</text>
+
+</svg>`;
+
+  document.getElementById('viz-area').innerHTML = svg;
+}
+
+// ─────────────────────────────────────────────────────────────
+// ISOMETRIC VIEW SVG
+// ─────────────────────────────────────────────────────────────
+function renderIsometric() {
+  const r = results;
+  const mm = x => x * 1e3;
+
+  const W_mm  = mm(r.W),  L_mm  = mm(r.L);
+  const Wg_mm = mm(r.Wg), Lg_mm = mm(r.Lg);
+  const Wf_mm = mm(r.Wf), Lf_mm = mm(r.Lf);
+  const h_mm  = r.h_mm,   t_mm  = r.t_mm;
+  const y0_mm = mm(r.y0), g_mm  = mm(r.g);
+
+  const svgW = 760, svgH = 500;
+  // Isometric projection: unit vector x→ = (cos30°, sin30°), y→ = (cos150°, sin150°), z→ = (0,-1) scaled
+  const isoX = (x, y) => [ svgW*0.18 + x * 0.62 - y * 0.62,  svgH*0.75 - x * 0.36 - y * 0.36 ];
+  const isoXZ = (x, z) => [ svgW*0.18 + x * 0.62,  svgH*0.75 - x * 0.36 - z * 1.1 ];
+  const isoYZ = (y, z) => [ svgW*0.18 - y * 0.62,  svgH*0.75 - y * 0.36 - z * 1.1 ];
+
+  // Scale so ground plane fits
+  const scale = Math.min(320 / Wg_mm, 260 / Lg_mm);
+  const s = scale;
+
+  // Heights in svg units
+  const hSvg  = Math.max(h_mm * 3.5, 18);
+  const tSvg  = Math.max(t_mm * 3.5, 5);
+
+  // Helper: project 3D point (x along W-axis, y along L-axis, z height)
+  const P = (x, y, z) => {
+    const px = svgW*0.30 + x*0.55 - y*0.55;
+    const py = svgH*0.70 - x*0.30 - y*0.30 - z;
+    return [px, py];
+  };
+
+  const pt = (x, y, z) => {
+    const [px, py] = P(x, y, z);
+    return `${px},${py}`;
+  };
+
+  // Corners of ground plane in svg
+  const gW = Wg_mm * s, gH = Lg_mm * s;
+  // Bottom layer z=0, top of substrate z=hSvg, top of conductor z=hSvg+tSvg
+  const z0 = 0, z1 = hSvg, z2 = hSvg + tSvg;
+
+  // Patch offsets
+  const pOx = (Wg_mm - W_mm) / 2 * s;
+  const pOy = (Lg_mm - L_mm) / 2 * s;
+  const pW  = W_mm * s, pH = L_mm * s;
+  const fW  = Wf_mm * s;
+  const fOx = (Wg_mm - Wf_mm) / 2 * s;
+  const lF  = Lf_mm * s;
+  const y0s = y0_mm * s;
+  const gs  = g_mm  * s;
+
+  // Draw polygons: ground top face, substrate side faces, patch top
+  const defs = `<defs>
+    <marker id="arr3" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#4ea8de"/>
+    </marker>
+  </defs>`;
+
+  // Substrate top face (Wg × Lg)
+  const subTop = `${pt(0,0,z1)} ${pt(gW,0,z1)} ${pt(gW,gH,z1)} ${pt(0,gH,z1)}`;
+  // Substrate front face
+  const subFront = `${pt(0,0,0)} ${pt(gW,0,0)} ${pt(gW,0,z1)} ${pt(0,0,z1)}`;
+  // Substrate right face
+  const subRight = `${pt(gW,0,0)} ${pt(gW,gH,0)} ${pt(gW,gH,z1)} ${pt(gW,0,z1)}`;
+
+  // Ground bottom face
+  const gndBot = `${pt(0,0,0)} ${pt(gW,0,0)} ${pt(gW,gH,0)} ${pt(0,gH,0)}`;
+
+  // Patch top
+  const patchTop = `${pt(pOx,pOy,z2)} ${pt(pOx+pW,pOy,z2)} ${pt(pOx+pW,pOy+pH,z2)} ${pt(pOx,pOy+pH,z2)}`;
+  // Patch front face
+  const patchFront = `${pt(pOx,pOy,z1)} ${pt(pOx+pW,pOy,z1)} ${pt(pOx+pW,pOy,z2)} ${pt(pOx,pOy,z2)}`;
+  // Patch right face
+  const patchRight = `${pt(pOx+pW,pOy,z1)} ${pt(pOx+pW,pOy+pH,z1)} ${pt(pOx+pW,pOy+pH,z2)} ${pt(pOx+pW,pOy,z2)}`;
+
+  // Feed line top
+  const feedY0 = pOy + pH + gs;
+  const feedY1 = pOy + pH + gs + lF;
+  const feedTop = `${pt(fOx,feedY0,z2)} ${pt(fOx+fW,feedY0,z2)} ${pt(fOx+fW,feedY1,z2)} ${pt(fOx,feedY1,z2)}`;
+  const feedFront = `${pt(fOx,feedY1,z1)} ${pt(fOx+fW,feedY1,z1)} ${pt(fOx+fW,feedY1,z2)} ${pt(fOx,feedY1,z2)}`;
+
+  // Inset feed top (inside patch)
+  const insetFeedTop = `${pt(fOx,pOy+pH-y0s,z2)} ${pt(fOx+fW,pOy+pH-y0s,z2)} ${pt(fOx+fW,pOy+pH,z2)} ${pt(fOx,pOy+pH,z2)}`;
+
+  // Waveguide port indicator
+  const portY = feedY1 + 4;
+  const portPts = `${pt(fOx-6,portY,z1-2)} ${pt(fOx+fW+6,portY,z1-2)} ${pt(fOx+fW+6,portY,z2+4)} ${pt(fOx-6,portY,z2+4)}`;
+
+  let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#030c16">
+  ${defs}
+  <text x="${svgW/2}" y="22" text-anchor="middle" fill="#4ea8de" font-size="13" font-family="monospace" letter-spacing="2">ISOMETRIC 3D VIEW</text>
+  <text x="${svgW/2}" y="36" text-anchor="middle" fill="#2a5070" font-size="9" font-family="monospace">Schematic · Not to scale · h &amp; t vertically exaggerated</text>
+
+  <!-- Substrate body -->
+  <polygon points="${gndBot}" fill="#0d2418" stroke="#1a4030" stroke-width="0.8"/>
+  <polygon points="${subFront}" fill="#0e2240" stroke="#1a3050" stroke-width="0.8"/>
+  <polygon points="${subRight}" fill="#0c1e38" stroke="#1a3050" stroke-width="0.8"/>
+  <polygon points="${subTop}" fill="#162840" stroke="#1a3a5a" stroke-width="1"/>
+  <text x="${P(gW/2, gH/2, z1)[0]}" y="${P(gW/2, gH/2, z1)[1] - 4}" text-anchor="middle" fill="#2a5080" font-size="8" font-family="monospace">SUBSTRATE</text>
+
+  <!-- Patch -->
+  <polygon points="${patchFront}" fill="#8B4510" stroke="#e09030" stroke-width="0.8"/>
+  <polygon points="${patchRight}" fill="#7a3e0e" stroke="#e09030" stroke-width="0.8"/>
+  <polygon points="${patchTop}" fill="#c07020" stroke="#e09030" stroke-width="1.4"/>
+  <text x="${P(pOx+pW/2, pOy+pH/2, z2)[0]}" y="${P(pOx+pW/2, pOy+pH/2, z2)[1] - 3}" text-anchor="middle" fill="#f5c060" font-size="10" font-family="monospace" font-weight="bold">PATCH</text>
+
+  <!-- Inset feed (inside patch area) -->
+  <polygon points="${insetFeedTop}" fill="#d07818" stroke="#e09030" stroke-width="0.6"/>
+
+  <!-- Feed line -->
+  <polygon points="${feedFront}" fill="#8B4510" stroke="#d07818" stroke-width="0.7"/>
+  <polygon points="${feedTop}" fill="#c07820" stroke="#d08020" stroke-width="1"/>
+  <text x="${P(fOx+fW/2, feedY0+lF/2, z2)[0]+4}" y="${P(fOx+fW/2, feedY0+lF/2, z2)[1]}" fill="#c09040" font-size="8" font-family="monospace">FEED</text>
+
+  <!-- Wave port plane -->
+  <polygon points="${portPts}" fill="rgba(0,255,136,0.07)" stroke="#00ff88" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="${P(fOx+fW/2, portY, z1+2)[0]}" y="${P(fOx+fW/2, portY, z1+2)[1]}" text-anchor="middle" fill="#00ff88" font-size="8" font-family="monospace">WAVE PORT</text>
+
+  <!-- Dimension labels (static text at key corners) -->
+  <!-- W label -->
+  <line x1="${P(pOx,pOy,z2)[0]}" y1="${P(pOx,pOy,z2)[1]}" x2="${P(pOx+pW,pOy,z2)[0]}" y2="${P(pOx+pW,pOy,z2)[1]}" stroke="#4ea8de" stroke-width="0.8" marker-start="url(#arr3)" marker-end="url(#arr3)"/>
+  <text x="${(P(pOx,pOy,z2)[0]+P(pOx+pW,pOy,z2)[0])/2}" y="${(P(pOx,pOy,z2)[1]+P(pOx+pW,pOy,z2)[1])/2 - 8}" text-anchor="middle" fill="#4ea8de" font-size="9" font-family="monospace">W=${fmt(r.W)} mm</text>
+
+  <!-- L label -->
+  <line x1="${P(pOx,pOy,z2)[0]}" y1="${P(pOx,pOy,z2)[1]}" x2="${P(pOx,pOy+pH,z2)[0]}" y2="${P(pOx,pOy+pH,z2)[1]}" stroke="#4ea8de" stroke-width="0.8" marker-start="url(#arr3)" marker-end="url(#arr3)"/>
+  <text x="${(P(pOx,pOy,z2)[0]+P(pOx,pOy+pH,z2)[0])/2 - 24}" y="${(P(pOx,pOy,z2)[1]+P(pOx,pOy+pH,z2)[1])/2}" fill="#4ea8de" font-size="9" font-family="monospace">L=${fmt(r.L)} mm</text>
+
+  <!-- h label -->
+  <line x1="${P(gW,0,0)[0]}" y1="${P(gW,0,0)[1]}" x2="${P(gW,0,z1)[0]}" y2="${P(gW,0,z1)[1]}" stroke="#4ea8de" stroke-width="0.8" marker-start="url(#arr3)" marker-end="url(#arr3)"/>
+  <text x="${P(gW,0,z1)[0] + 6}" y="${(P(gW,0,0)[1]+P(gW,0,z1)[1])/2}" fill="#4ea8de" font-size="9" font-family="monospace">h=${r.h_mm} mm</text>
+
+  <!-- Wg label -->
+  <line x1="${P(0,gH+4,0)[0]}" y1="${P(0,gH+4,0)[1]}" x2="${P(gW,gH+4,0)[0]}" y2="${P(gW,gH+4,0)[1]}" stroke="#4ea8de" stroke-width="0.8" marker-start="url(#arr3)" marker-end="url(#arr3)"/>
+  <text x="${(P(0,gH+4,0)[0]+P(gW,gH+4,0)[0])/2}" y="${(P(0,gH+4,0)[1]+P(gW,gH+4,0)[1])/2 + 12}" text-anchor="middle" fill="#4ea8de" font-size="9" font-family="monospace">Wg=${fmt(r.Wg)} mm</text>
+
+  <!-- Axis triad -->
+  <line x1="60" y1="460" x2="90" y2="445" stroke="#f7c948" stroke-width="1.2" marker-end="url(#arr3)"/>
+  <text x="92" y="444" fill="#f7c948" font-size="9" font-family="monospace">x(W)</text>
+  <line x1="60" y1="460" x2="30" y2="445" stroke="#00ff88" stroke-width="1.2" marker-end="url(#arr3)"/>
+  <text x="10" y="444" fill="#00ff88" font-size="9" font-family="monospace">y(L)</text>
+  <line x1="60" y1="460" x2="60" y2="430" stroke="#00c2ff" stroke-width="1.2" marker-end="url(#arr3)"/>
+  <text x="63" y="428" fill="#00c2ff" font-size="9" font-family="monospace">z</text>
+
+</svg>`;
+
+  document.getElementById('viz-area').innerHTML = svg;
+}
+
+// ─────────────────────────────────────────────────────────────
+// PRINT REPORT GENERATION
+// ─────────────────────────────────────────────────────────────
+function generateReport() {
+  if (!results.W) recalculate();
+  const r = results;
+  const fmt4 = x => (x * 1e3).toFixed(4);
+  const fmt3 = x => (x * 1e3).toFixed(3);
+  const fmt2 = x => (x * 1e3).toFixed(2);
+
+  const now = new Date();
+  document.getElementById('report-date').textContent =
+    now.toLocaleDateString('en-GB', {weekday:'long', year:'numeric', month:'long', day:'numeric'}) +
+    '  ' + now.toLocaleTimeString('en-GB');
+
+  // Input table
+  const substrateLabel = { fr4: 'FR4', rogers: 'Rogers RT/duroid 5880', custom: 'Custom' };
+  const conductorLabel = { copper: 'Copper', silver: 'Silver', gold: 'Gold', aluminum: 'Aluminum', custom: 'Custom' };
+  const inputsData = [
+    ['f (Frequency)',    r.f_GHz.toFixed(3), 'GHz'],
+    ['Substrate',       substrateLabel[document.getElementById('substrate').value], '—'],
+    ['εr',              r.er.toFixed(4), '—'],
+    ['h (Substrate)',   r.h_mm.toFixed(4), 'mm'],
+    ['tan δ',           r.tand.toFixed(4), '—'],
+    ['Conductor',       conductorLabel[document.getElementById('conductor').value], '—'],
+    ['σ (Conductivity)',(r.sigma/1e7).toFixed(2)+'×10⁷', 'S/m'],
+    ['t (Conductor)',   r.t_mm.toFixed(4), 'mm'],
+  ];
+  fillTable('report-inputs', inputsData);
+
+  // Results table
+  const resultsData = [
+    ['W (Patch Width)',    fmt4(r.W), 'mm'],
+    ['L (Patch Length)',   fmt4(r.L), 'mm'],
+    ['εreff',             r.ereff.toFixed(5), '—'],
+    ['ΔL (Fringing Ext.)',fmt4(r.dL), 'mm'],
+    ['Wg (Ground Width)', fmt3(r.Wg), 'mm'],
+    ['Lg (Ground Length)',fmt3(r.Lg), 'mm'],
+    ['Wf (Feed Width)',   fmt4(r.Wf), 'mm'],
+    ['Lf (Feed Length)',  fmt3(r.Lf), 'mm'],
+    ['y₀ (Inset Pos.)',   fmt4(r.y0), 'mm'],
+    ['g (Feed Gap)',      fmt4(r.g), 'mm'],
+    ['Rin(0) Edge Resist.', r.Rin0.toFixed(2), 'Ω'],
+    ['Skin Depth δ_s',   (r.skinDepth*1e6).toFixed(4), 'μm'],
+    ['λ₀ (Free-Space)',  fmt2(r.lambda0), 'mm'],
+    ['λg (Guided)',      fmt2(r.lambda_g), 'mm'],
+  ];
+  fillTable('report-results', resultsData);
+
+  // Sim table
+  const simData = [
+    ['Wave Port Width',   fmt4(r.WP_W), 'mm'],
+    ['Wave Port Height',  fmt4(r.WP_H), 'mm'],
+    ['Air Box Width',     fmt2(r.AB_W), 'mm'],
+    ['Air Box Length',    fmt2(r.AB_H), 'mm'],
+    ['Air Box Height',    fmt2(r.AB_Z), 'mm'],
+    ['Rad. Boundary (λ/4)', fmt2(r.radBound), 'mm'],
+    ['Mesh – Coarse (λg/20)',  (r.mesh_coarse*1e3).toFixed(3), 'mm'],
+    ['Mesh – Recommended (λg/30)',(r.mesh_rec*1e3).toFixed(3), 'mm'],
+    ['Mesh – Fine (λg/50)',(r.mesh_fine*1e3).toFixed(3), 'mm'],
+  ];
+  fillTable('report-sim', simData);
+
+  // Formulas
+  document.getElementById('report-formulas').innerHTML = `
+W = c/(2f) × √(2/(εr+1)) = ${fmt4(r.W)} mm<br>
+εreff = (εr+1)/2 + (εr-1)/2 × [1+12h/W]^(-½) = ${r.ereff.toFixed(5)}<br>
+ΔL = 0.412h × (εreff+0.3)(W/h+0.264)/[(εreff-0.258)(W/h+0.8)] = ${fmt4(r.dL)} mm<br>
+L = c/(2f√εreff) - 2ΔL = ${fmt4(r.L)} mm<br>
+Wg = W + 6h = ${fmt3(r.Wg)} mm,  Lg = L + 6h = ${fmt3(r.Lg)} mm<br>
+Wf (50Ω) = Bahl &amp; Trivedi formula = ${fmt4(r.Wf)} mm<br>
+y₀ = L/π × arccos(√(50/Rin(0))) = ${fmt4(r.y0)} mm<br>
+g = h/2 = ${fmt4(r.g)} mm<br>
+δ_s = 1/√(πfμ₀σ) = ${(r.skinDepth*1e6).toFixed(4)} μm`;
+
+  // Notes
+  document.getElementById('report-notes').innerHTML = `
+<strong>Design Summary:</strong> This antenna is designed for ${r.f_GHz} GHz operation on ${document.getElementById('substrate').value.toUpperCase()} substrate (εr = ${r.er}, h = ${r.h_mm} mm). 
+The inset-fed configuration provides 50 Ω matching without a separate quarter-wave transformer.<br><br>
+<strong>Fabrication Tolerances:</strong> Maintain dimensional accuracy to ±0.05 mm for dimensions above 5 mm, and ±0.02 mm for feed gap g and inset y₀. 
+Errors in y₀ primarily shift the input impedance; errors in L shift resonant frequency by approximately Δf/f₀ ≈ -ΔL/L.<br><br>
+<strong>Simulation Notes:</strong> Begin with the recommended mesh (λg/30) and perform 5 adaptive passes in HFSS. 
+Fine-tune y₀ parametrically if S₁₁ > -10 dB at resonance. The waveguide port must be applied on the substrate cross-section face at the feed entry point.<br><br>
+<strong>Expected Performance:</strong> Gain ≈ 6–8 dBi, Bandwidth ≈ ${r.er < 3 ? '3–5%' : '1–3%'} (−10 dB), Radiation Efficiency ≈ ${r.tand < 0.002 ? '>95%' : '85–92%'}, Polarisation: Linear (E-plane along L-axis).`;
+
+  document.getElementById('print-report').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function fillTable(id, data) {
+  const tbody = document.querySelector(`#${id} tbody`);
+  tbody.innerHTML = '';
+  data.forEach(([p, v, u]) => {
+    tbody.innerHTML += `<tr><td>${p}</td><td>${v}</td><td>${u}</td></tr>`;
+  });
+}
+
+function closeReport() {
+  document.getElementById('print-report').style.display = 'none';
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  recalculate();
+  // Render top view immediately when diagrams tab is first opened
+  document.querySelectorAll('.nav-tab').forEach((tab, i) => {
+    tab.addEventListener('click', () => {
+      if (i === 1) { // diagrams tab
+        setTimeout(renderCurrentViz, 50);
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>
